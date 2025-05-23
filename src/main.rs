@@ -32,7 +32,7 @@ struct AppState {
 
 #[tokio::main]
 async fn main() -> anyhow::Result<()> {
-    tracing_subscriber::init();
+    tracing_subscriber::fmt::init();
 
     let db = Database::new("songs.db").await?;
     db.init().await?;

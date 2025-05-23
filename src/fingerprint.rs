@@ -1,14 +1,13 @@
 use anyhow::{anyhow, Result};
-use ndarray::{Array1, Array2};
+use ndarray::Array2;
 use rustfft::{FftPlanner, num_complex::Complex};
-use std::collections::HashMap;
 
 const SAMPLE_RATE: u32 = 11025;
 const WINDOW_SIZE: usize = 1024;
 const HOP_SIZE: usize = 512;
 const FREQ_BINS: usize = 512;
 
-#[derive(Debug, Clone)]
+#[derive(Debug, Clone, serde::Serialize, serde::Deserialize)]
 pub struct AudioFingerprint {
     pub hashes: Vec<u32>,
     pub duration: f64,
@@ -64,8 +63,9 @@ fn compute_spectrogram(samples: &[f32]) -> Result<Array2<f64>> {
 }
 
 fn apply_hann_window(buffer: &mut [Complex<f64>]) {
+    let buffer_len = buffer.len();
     for (i, sample) in buffer.iter_mut().enumerate() {
-        let window_val = 0.5 * (1.0 - (2.0 * std::f64::consts::PI * i as f64 / (buffer.len() - 1) as f64).cos());
+        let window_val = 0.5 * (1.0 - (2.0 * std::f64::consts::PI * i as f64 / (buffer_len - 1) as f64).cos());
         *sample *= window_val;
     }
 }

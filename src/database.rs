@@ -116,6 +116,42 @@ impl Database {
         Ok(best_match)
     }
 
+    pub async fn find_all_matches(
+        &self,
+        query_fingerprint: &AudioFingerprint,
+    ) -> Result<Vec<(i64, String, String, f64)>> {
+        let rows = sqlx::query(
+            r#"
+            SELECT id, title, artist, fingerprint_data, duration
+            FROM songs
+            "#,
+        )
+        .fetch_all(&self.pool)
+        .await?;
+
+        let mut matches = Vec::new();
+
+        for row in rows {
+            let id: i64 = row.get("id");
+            let title: String = row.get("title");
+            let artist: String = row.get("artist");
+            let fingerprint_data: String = row.get("fingerprint_data");
+
+            if let Ok(stored_fingerprint) = serde_json::from_str::<AudioFingerprint>(&fingerprint_data) {
+                let similarity = calculate_similarity(query_fingerprint, &stored_fingerprint);
+                
+                if similarity > 0.3 {
+                    matches.push((id, title, artist, similarity));
+                }
+            }
+        }
+
+        // Sort by similarity in descending order
+        matches.sort_by(|a, b| b.3.partial_cmp(&a.3).unwrap_or(std::cmp::Ordering::Equal));
+
+        Ok(matches)
+    }
+
     pub async fn get_all_songs(&self) -> Result<Vec<(i64, String, String)>> {
         let rows = sqlx::query(
             r#"

@@ -110,7 +110,7 @@ fn generate_hashes(peaks: &[SpectralPeak]) -> Vec<u32> {
     
     for (i, &peak1) in peaks.iter().enumerate() {
         for &peak2 in peaks.iter().skip(i + 1).take(5) {
-            if peak2.time_frame <= peak1.time_frame + 10 {
+            if peak2.time_frame > peak1.time_frame && peak2.time_frame <= peak1.time_frame + 10 {
                 let freq1 = peak1.freq_bin as u32;
                 let freq2 = peak2.freq_bin as u32;
                 let time_diff = (peak2.time_frame - peak1.time_frame) as u32;

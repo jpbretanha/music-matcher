@@ -17,12 +17,17 @@ mod fingerprint;
 use database::Database;
 
 #[derive(Serialize, Deserialize)]
+struct SongMatch {
+    song_id: i64,
+    title: String,
+    artist: String,
+    confidence: f64,
+}
+
+#[derive(Serialize, Deserialize)]
 struct MatchResponse {
     matched: bool,
-    song_id: Option<i64>,
-    title: Option<String>,
-    artist: Option<String>,
-    confidence: Option<f64>,
+    matches: Vec<SongMatch>,
 }
 
 #[derive(Clone)]
@@ -123,21 +128,27 @@ async fn process_audio_match(db: &Database, audio_data: &[u8]) -> anyhow::Result
     let audio_samples = audio::decode_audio(audio_data)?;
     let fingerprint = fingerprint::generate_fingerprint(&audio_samples)?;
     
-    if let Some((song_id, title, artist, confidence)) = db.find_match(&fingerprint).await? {
-        Ok(MatchResponse {
-            matched: true,
-            song_id: Some(song_id),
-            title: Some(title),
-            artist: Some(artist),
-            confidence: Some(confidence),
-        })
-    } else {
+    let all_matches = db.find_all_matches(&fingerprint).await?;
+    
+    if all_matches.is_empty() {
         Ok(MatchResponse {
             matched: false,
-            song_id: None,
-            title: None,
-            artist: None,
-            confidence: None,
+            matches: Vec::new(),
+        })
+    } else {
+        let matches = all_matches
+            .into_iter()
+            .map(|(song_id, title, artist, confidence)| SongMatch {
+                song_id,
+                title,
+                artist,
+                confidence,
+            })
+            .collect();
+            
+        Ok(MatchResponse {
+            matched: true,
+            matches,
         })
     }
 }
